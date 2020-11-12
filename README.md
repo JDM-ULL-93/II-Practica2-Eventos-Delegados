@@ -207,13 +207,98 @@ public class InterceptorHandler : MonoBehaviour
 ## Apartado 3 
 **En la escena habrá ubicados un tipo de objetos que al ser recolectados por el jugador harán que ciertos obstáculos se desplacen desbloqueando algún espacio.**
 ![img/3.a.gif](img/3.a.gif)
+Codigo responsable:
 
-<Falta por incluir el codigo>
+El jugador al pulsar E aumenta su poder y recoge la moneda (realmente la elimina)
+```c#
+public class PlayerHandler : MonoBehaviour
+{
+    private void OnTriggerStay(Collider other)
+    {
+        var coin = other.gameObject.GetComponent<CoinHandler>();
+        if (coin != null && Input.GetKey(KeyCode.E))
+        {
+            this.distanciaCerca += (this.distanciaCerca * (coin.value/2))/100;
+            this.distanciaMedia += (this.distanciaCerca * coin.value)/100;
+            GameObject.Destroy(other.gameObject);
+            return;
+        }
+    }
+}
+```
+
+La moneda estará a la escucha del momento en que sea eliminado, y cuando lo sea, disparara un evento para avisar a todos los objetos suscrito a ella
+```c#
+public delegate void fOnCoinDestroy(CoinHandler handler);
+public class CoinHandler : MonoBehaviour
+{
+	public static event fOnCoinDestroy eventOnCoinDestroy;
+    private void OnDestroy()
+    {
+        CoinHandler.eventOnCoinDestroy(this);
+    }
+}
+```
+
+Y aqui el obstaculo que se suscribira al evento "onCoinDestroy" y se desbloqueará cuando la moneda se destruya
+```c#
+public class BuildingHandler : MonoBehaviour
+{
+    // Start is called before the first frame update
+    GameObject door;
+    bool open = false;
+    void Start()
+    {
+        CoinHandler.eventOnCoinDestroy += onCoinDestroy;
+        door = this.gameObject.GetComponentInChildren<DoorHandler>().gameObject;
+    }
+
+    void onCoinDestroy(CoinHandler handler)
+    {
+        this.open = true;
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        if (open)
+        {
+            door.transform.rotation = Quaternion.Euler(door.transform.rotation.eulerAngles.x - 1.0f,0 , 0);
+            if (Mathf.Cos(door.transform.rotation.eulerAngles.x) == 0) open = false;
+        }
+           
+    }
+}
+```
+
 
 ## Apartado 4
 **Incorporar un elemento que sirva para encender o apagar un foco utilizando el teclado.**
 ![img/4.a.gif](img/4.a.gif)
 
-<Falta por incluir el codigo>
+El codigo responsable de ello es el siguiente:
 
+El codigo del jugador responsable de, al estar cerca y pulsar e, encender la linterna
+```c#
+public class PlayerHandler : MonoBehaviour
+{
+    private void OnTriggerStay(Collider other)
+    {
+        var flashlight = other.gameObject.GetComponent<FlashLightHandler>();
+        if (flashlight != null && Input.GetKey(KeyCode.E))
+        {
+            if (!flashlight.on)
+            {
+                flashlight.spotlight.intensity = 3;
+                flashlight.on = true;
+            }
+            else
+            {
+                flashlight.spotlight.intensity = 0;
+                flashlight.on = false;
+            }
+            return;
+        }
+    }
+}
+```
 
